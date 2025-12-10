@@ -49,6 +49,7 @@ public class VpnProxyDetect extends CordovaPlugin {
         return false;
     }
 
+    /** VPN detection based on network interface names */
     private boolean isVpnActive() {
         try {
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
@@ -56,7 +57,8 @@ public class VpnProxyDetect extends CordovaPlugin {
                 String name = intf.getName().toLowerCase();
                 if (!intf.isUp()) continue;
                 if (name.startsWith("tun") || name.startsWith("ppp") || name.contains("ipsec") ||
-                    name.startsWith("utun") || name.startsWith("tap") || name.startsWith("wg") || name.startsWith("vti")) {
+                    name.startsWith("utun") || name.startsWith("tap") || name.startsWith("wg") ||
+                    name.startsWith("vti")) {
                     Log.d(TAG, "Detected VPN interface: " + name);
                     return true;
                 }
@@ -67,27 +69,34 @@ public class VpnProxyDetect extends CordovaPlugin {
         return false;
     }
 
+    /** Proxy detection using system properties */
     private boolean isProxyActive() {
         String proxyHost = System.getProperty("http.proxyHost");
         return proxyHost != null && !proxyHost.isEmpty();
     }
 
+    /** MITM detection stub (not implemented) */
     private boolean isMitmPresent() {
-        return false; // basic stub
+        // Advanced MITM detection is complex; returning false for now
+        return false;
     }
 
-    private String getLocalIpAddress() {
-        return null; // can implement if needed
-    }
-
+    /** Return all network interface names */
     private List<String> getInterfaceNames() {
-        List<String> names = new ArrayList<String>();
+        List<String> names = new ArrayList<>();
         try {
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
             for (NetworkInterface intf : Collections.list(interfaces)) {
                 names.add(intf.getName());
             }
-        } catch (Exception e) { }
+        } catch (Exception e) {
+            Log.e(TAG, "getInterfaceNames error", e);
+        }
         return names;
+    }
+
+    /** Stub for local IP address (can implement actual detection) */
+    private String getLocalIpAddress() {
+        return null; // return null for now
     }
 }
