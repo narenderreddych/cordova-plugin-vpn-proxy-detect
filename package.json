@@ -1,12 +1,34 @@
 {
-"name": "cordova-plugin-vpn-proxy-detect",
-"version": "1.0.0",
-"description": "Detect VPN and Proxy presence (Android + iOS)",
-"cordova": {
-"id": "cordova-plugin-vpn-proxy-detect",
-"platforms": ["android", "ios"]
-},
-"keywords": ["cordova","vpn","proxy","detect","security"],
-"author": "narendar",
-"license": "MIT"
+    "name": "cordova-plugin-vpn-proxy-detect",
+    "version": "1.1.0",
+    "description": "Cordova plugin to detect VPN and Proxy on Android and iOS",
+    "cordova": {
+        "id": "cordova-plugin-vpn-proxy-detect",
+        "platforms": ["android", "ios"]
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/narenderreddych/cordova-plugin-vpn-proxy-detect.git"
+    },
+    "keywords": [
+        "cordova",
+        "vpn",
+        "proxy",
+        "detect",
+        "security",
+        "network",
+        "mitm",
+        "android",
+        "ios",
+        "ecosystem:cordova"
+    ],
+    "author": "narendar",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/narenderreddych/cordova-plugin-vpn-proxy-detect/issues"
+    },
+    "homepage": "https://github.com/narenderreddych/cordova-plugin-vpn-proxy-detect#readme",
+    "engines": {
+        "cordova": ">=9.0.0"
+    }
 }
