@@ -19,16 +19,12 @@
         "network",
         "mitm",
         "android",
-        "ios",
-        "ecosystem:cordova"
+        "ios"
     ],
     "author": "narendar",
     "license": "MIT",
     "bugs": {
         "url": "https://github.com/narenderreddych/cordova-plugin-vpn-proxy-detect/issues"
     },
-    "homepage": "https://github.com/narenderreddych/cordova-plugin-vpn-proxy-detect#readme",
-    "engines": {
-        "cordova": ">=9.0.0"
-    }
+    "homepage": "https://github.com/narenderreddych/cordova-plugin-vpn-proxy-detect#readme"
 }
