@@ -1,29 +1,27 @@
-<?xml version="1.0" encoding="utf-8"?>
-<plugin id="cordova-plugin-vpn-proxy-detect" version="1.0.0" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin id="cordova-plugin-vpn-proxy-detect" version="1.0.0"
+xmlns="http://apache.org/cordova/ns/plugins/1.0"
+xmlns:android="http://schemas.android.com/apk/res/android">
 <name>VpnProxyDetect</name>
-<js-module src="www/vpnproxy.js" name="VpnProxyDetect">
-<clobbers target="cordova.plugins.vpnproxy" />
+
+
+<js-module src="www/vpnDetect.js" name="vpnDetect">
+<clobbers target="cordova.plugins.vpnDetect" />
 </js-module>
 
 
 <platform name="android">
-<config-file target="res/xml/config.xml" parent="/*">
-<feature name="VpnProxyDetect">
-<param name="android-package" value="org.apache.cordova.vpnproxy.VpnProxyDetector" />
-</feature>
+<config-file target="AndroidManifest.xml" parent="/manifest">
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+<uses-permission android:name="android.permission.INTERNET" />
 </config-file>
-<source-file src="src/android/VpnProxyDetector.kt" target-dir="src/org/apache/cordova/vpnproxy" />
+<source-file src="src/android/VpnProxyDetect.java" target-dir="src/com/vpndetect" />
 </platform>
 
 
 <platform name="ios">
-<config-file target="*-Info.plist" parent="">
-</config-file>
-<source-file src="src/ios/VpnProxyDetector.swift" />
+<source-file src="src/ios/VpnProxyDetect.m" />
+<framework src="CFNetwork.framework" />
+<framework src="SystemConfiguration.framework" />
 </platform>
-
-
-<engines>
-<engine name="cordova" version=">=9.0.0" />
-</engines>
 </plugin>
