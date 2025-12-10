@@ -1,9 +1,12 @@
 {
 "name": "cordova-plugin-vpn-proxy-detect",
 "version": "1.0.0",
-"description": "Detect VPN and proxy status on Android and iOS",
+"description": "Detect VPN and Proxy presence (Android + iOS)",
 "cordova": {
 "id": "cordova-plugin-vpn-proxy-detect",
 "platforms": ["android", "ios"]
-}
+},
+"keywords": ["cordova","vpn","proxy","detect","security"],
+"author": "narendar",
+"license": "MIT"
 }
