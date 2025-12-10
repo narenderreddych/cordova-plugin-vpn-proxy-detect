@@ -1,75 +1,113 @@
-A Cordova plugin to detect VPN and Proxy status on Android (API 26+) and iOS (iOS 15+). Includes methods:
-
-- `isVpnConnected()` -> Promise<boolean>
-- `isProxyEnabled()` -> Promise<boolean>
-- `getProxyInfo()` -> Promise<object|null> (host, port, type)
-
-## README.md (usage snippet)
-
-
-```md
 # cordova-plugin-vpn-proxy-detect
 
+**Purpose:** Detect VPN, Proxy, and basic MITM indications on Android & iOS. Returns a JSON result to JavaScript and supports a single-call API `cordova.plugins.vpnproxy.check(success, error)`.
 
-## Install
+---
 
+## Features
 
-From local folder:
+* Detect active VPN connections (tun0, ppp0, ipsec, utun*, tap*, wg, vti)
+* Detect system proxy settings
+* Best-effort MITM detection on Android
+* Lists active network interfaces
+* Retrieves device local IP
+* Supports both **Android** and **iOS**
+* Optional continuous monitoring via JS
+* Works on emulator and real devices
 
+---
+
+## Installation
+
+### From local path
 
 ```bash
-cordova plugin add /path/to/cordova-plugin-vpn-proxy-detect
+cordova plugin add <path-to-your-plugin>
 ```
 
-
-Or from npm (if published):
-
+### From GitHub
 
 ```bash
-cordova plugin add cordova-plugin-vpn-proxy-detect
+cordova plugin add https://github.com/narenderreddych/cordova-plugin-vpn-proxy-detect.git
 ```
 
+---
 
 ## Usage
 
+### Basic detection
 
-```js
-cordova.plugins.vpnproxy.isVpnConnected().then(function(connected){
-console.log('VPN connected?', connected);
-});
-
-
-cordova.plugins.vpnproxy.isProxyEnabled().then(function(enabled){
-console.log('Proxy enabled?', enabled);
-});
-
-
-cordova.plugins.vpnproxy.getProxyInfo().then(function(info){
-console.log('Proxy info', info);
-}).catch(function(){
-console.log('No proxy');
+```javascript
+document.addEventListener('deviceready', function() {
+    cordova.plugins.vpnproxy.check(function(result) {
+        console.log('VPN Enabled:', result.vpnEnabled);
+        console.log('Proxy Enabled:', result.proxyEnabled);
+        console.log('MITM Detected:', result.mitmDetected);
+        console.log('Interfaces:', result.interfaces);
+        console.log('Local IP:', result.ip);
+    }, function(err) {
+        console.error('VPN/Proxy check failed:', err);
+    });
 });
 ```
 
+### Continuous monitoring (every 10s)
 
-## Platform support & notes
+```javascript
+var stopMonitor = cordova.plugins.vpnproxy.startMonitor(10000, function(result) {
+    console.log('Dynamic check:', result);
+    if(result.vpnEnabled || result.proxyEnabled) {
+        alert('VPN or Proxy detected!');
+    }
+});
 
+// Stop monitoring later if needed
+// stopMonitor();
+```
 
-- Android: targeted for Android 8 (API 26) and above. VPN detection uses `NetworkCapabilities.TRANSPORT_VPN` and best-effort `/proc/net/dev` checks for older devices.
-- iOS: targeted for iOS 15 and above. Uses `getifaddrs` to detect VPN interfaces and CFNetwork API for proxy detection.
+---
 
+## API Reference
 
-## Limitations
+| Method                               | Description                                                                                                 |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `check(success, error)`              | Single detection call; returns object with `vpnEnabled`, `proxyEnabled`, `mitmDetected`, `interfaces`, `ip` |
+| `startMonitor(intervalMs, callback)` | Starts periodic detection (interval in ms); returns a stop function                                         |
 
+### Returned Object
 
-- VPN detection cannot differentiate between user-configured VPNs and app VPNs in all cases.
-- iOS NEVPNManager requires special entitlements if you want to list/profile VPN configurations — this plugin avoids that by scanning network interfaces.
-- Proxy detection reads system proxy settings; some managed device policies or custom VPNs may obfuscate detection.
+```json
+{
+  "vpnEnabled": true/false,
+  "proxyEnabled": true/false,
+  "mitmDetected": true/false,
+  "interfaces": ["wlan0","tun0"],
+  "ip": "10.8.0.2"
+}
+```
 
+---
 
-## Future improvements
+## Notes
 
+* **Android:** Checks network interfaces and system proxy properties. MITM detection checks user-added CAs. Some paths may vary depending on Android version.
+* **iOS:** Uses `getifaddrs` to detect VPN interfaces (`utun*`, `ipsec`, `ppp`, `tap`). Proxy detection via system proxy settings. MITM detection is limited by OS restrictions.
+* **Limitations:**
 
-- Add Swift/Obj-C bridge improvements and Objective-C fallback.
-- Add richer Android proxy detection using `ProxyInfo` and per-network inspections for older API levels.
-- Add unit tests and CI for building the plugin for Cordova CLI and Capacitor.
+  * VPN detection depends on OS-level access; some VPNs or split-tunnel setups may evade detection.
+  * Proxy detection is best-effort; corporate networks may use complex proxies that are hard to detect.
+  * MITM detection is conservative; for critical security, verify SSL certificates server-side.
+
+---
+
+## Testing
+
+* Test on multiple devices with popular VPN apps (OpenVPN, WireGuard, NordVPN).
+* Test with corporate proxy setups and mobile carriers.
+* Ensure to handle false positives gracefully.
+
+---
+
+## License
+
+MIT
