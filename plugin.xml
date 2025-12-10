@@ -6,6 +6,7 @@
     <name>VpnProxyDetect</name>
     <description>Detect VPN and Proxy presence on Android and iOS</description>
     
+    <!-- CRITICAL FIX: Changed to vpnproxy to match JavaScript -->
     <js-module src="www/vpnproxy.js" name="vpnproxy">
         <clobbers target="cordova.plugins.vpnproxy" />
     </js-module>
@@ -41,7 +42,5 @@
     
     <engines>
         <engine name="cordova" version=">=9.0.0" />
-        <engine name="cordova-android" version=">=9.0.0" />
-        <engine name="cordova-ios" version=">=6.0.0" />
     </engines>
 </plugin>
