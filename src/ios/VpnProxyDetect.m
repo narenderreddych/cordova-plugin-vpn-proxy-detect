@@ -43,6 +43,8 @@
     }];
 }
 
+#pragma mark - VPN Detection
+
 - (BOOL)isVpnActive {
     struct ifaddrs *addrs;
     BOOL found = NO;
@@ -55,7 +57,8 @@
                 
                 if ([name hasPrefix:@"utun"] || [name hasPrefix:@"ipsec"] || 
                     [name hasPrefix:@"ppp"] || [name hasPrefix:@"tap"] ||
-                    [name hasPrefix:@"tun"] || [name hasPrefix:@"wg"]) {
+                    [name hasPrefix:@"tun"] || [name hasPrefix:@"wg"] ||
+                    [name containsString:@"ipsec"]) {
                     NSLog(@"[VpnProxyDetect] VPN interface: %@", name);
                     found = YES;
                     break;
@@ -67,6 +70,8 @@
     }
     return found;
 }
+
+#pragma mark - Interface List
 
 - (NSArray*)getInterfaceNames {
     NSMutableArray *arr = [NSMutableArray array];
@@ -84,6 +89,8 @@
     }
     return arr;
 }
+
+#pragma mark - Local IP Address
 
 - (NSString*)getLocalIp {
     struct ifaddrs *addrs;
@@ -117,36 +124,78 @@
     return wifiAddress ?: cellularAddress;
 }
 
+#pragma mark - Proxy Detection (iOS-Compatible)
+
 - (BOOL)isProxyEnabled {
     NSDictionary *proxySettings = (__bridge_transfer NSDictionary *)CFNetworkCopySystemProxySettings();
     
-    if (!proxySettings) return NO;
+    if (!proxySettings) {
+        return NO;
+    }
     
-    NSString *httpHost = proxySettings[(NSString *)kCFNetworkProxiesHTTPProxy];
-    NSString *httpsHost = proxySettings[(NSString *)kCFNetworkProxiesHTTPSProxy];
+    // iOS only has HTTP proxy settings, not separate HTTPS proxy
+    // Check for HTTP proxy
+    NSString *proxyHost = proxySettings[(NSString *)kCFNetworkProxiesHTTPProxy];
+    NSNumber *proxyPort = proxySettings[(NSString *)kCFNetworkProxiesHTTPPort];
     
-    if ((httpHost && [httpHost isKindOfClass:[NSString class]] && httpHost.length > 0) ||
-        (httpsHost && [httpsHost isKindOfClass:[NSString class]] && httpsHost.length > 0)) {
-        NSLog(@"[VpnProxyDetect] Proxy detected: HTTP=%@, HTTPS=%@", httpHost, httpsHost);
+    if (proxyHost && [proxyHost isKindOfClass:[NSString class]] && proxyHost.length > 0) {
+        NSLog(@"[VpnProxyDetect] HTTP Proxy detected: %@:%@", proxyHost, proxyPort);
         return YES;
+    }
+    
+    // Check for proxy auto-configuration (PAC)
+    NSString *pacUrl = proxySettings[(NSString *)kCFNetworkProxiesProxyAutoConfigURLString];
+    if (pacUrl && [pacUrl isKindOfClass:[NSString class]] && pacUrl.length > 0) {
+        NSLog(@"[VpnProxyDetect] PAC proxy detected: %@", pacUrl);
+        return YES;
+    }
+    
+    // Check if proxy is enabled (iOS-specific key)
+    NSNumber *proxyEnabled = proxySettings[(NSString *)kCFNetworkProxiesHTTPEnable];
+    if (proxyEnabled && [proxyEnabled boolValue]) {
+        NSLog(@"[VpnProxyDetect] Proxy enabled via kCFNetworkProxiesHTTPEnable");
+        return YES;
+    }
+    
+    // Additional check: iOS sometimes uses __SCOPED__ dictionary
+    NSDictionary *scopedSettings = proxySettings[@"__SCOPED__"];
+    if (scopedSettings && [scopedSettings isKindOfClass:[NSDictionary class]]) {
+        for (NSString *key in scopedSettings) {
+            NSDictionary *scopedProxy = scopedSettings[key];
+            if (scopedProxy && scopedProxy[(NSString *)kCFNetworkProxiesHTTPProxy]) {
+                NSLog(@"[VpnProxyDetect] Scoped proxy found for interface: %@", key);
+                return YES;
+            }
+        }
     }
     
     return NO;
 }
+
+#pragma mark - MITM Detection (iOS-Compatible)
 
 - (BOOL)isMitmPresent {
     @try {
         NSDictionary *proxySettings = (__bridge_transfer NSDictionary *)CFNetworkCopySystemProxySettings();
         
         if (proxySettings) {
-            NSString *httpHost = proxySettings[(NSString *)kCFNetworkProxiesHTTPProxy];
-            NSNumber *httpPort = proxySettings[(NSString *)kCFNetworkProxiesHTTPPort];
+            NSString *proxyHost = proxySettings[(NSString *)kCFNetworkProxiesHTTPProxy];
+            NSNumber *proxyPort = proxySettings[(NSString *)kCFNetworkProxiesHTTPPort];
             
-            if (httpHost && [httpHost isEqualToString:@"127.0.0.1"]) {
-                if (httpPort && ([httpPort intValue] == 8888 || [httpPort intValue] == 8889)) {
-                    NSLog(@"[VpnProxyDetect] MITM detected: local proxy on port %@", httpPort);
+            // Check for common MITM proxy ports on localhost
+            if (proxyHost && [proxyHost isEqualToString:@"127.0.0.1"]) {
+                if (proxyPort && ([proxyPort intValue] == 8888 || [proxyPort intValue] == 8889 || 
+                                  [proxyPort intValue] == 8080 || [proxyPort intValue] == 8081)) {
+                    NSLog(@"[VpnProxyDetect] Possible MITM detected: local proxy on port %@", proxyPort);
                     return YES;
                 }
+            }
+            
+            // Check if any proxy auto-config URL contains "mitm" or "proxy"
+            NSString *pacUrl = proxySettings[(NSString *)kCFNetworkProxiesProxyAutoConfigURLString];
+            if (pacUrl && [pacUrl rangeOfString:@"mitm" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+                NSLog(@"[VpnProxyDetect] MITM indicated in PAC URL: %@", pacUrl);
+                return YES;
             }
         }
     }
