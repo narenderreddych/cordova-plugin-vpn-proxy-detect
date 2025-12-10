@@ -1,4 +1,81 @@
 package com.vpndetect;
+
+
+import org.apache.cordova.CallbackContext;
+import org.apache.cordova.CordovaPlugin;
+import org.apache.cordova.CordovaInterface;
+import org.apache.cordova.CordovaWebView;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.os.Build;
+import android.util.Log;
+
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.ArrayList;
+import java.util.List;
+
+
+public class VpnProxyDetect extends CordovaPlugin {
+private static final String TAG = "VpnProxyDetect";
+
+
+@Override
+public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
+if (action.equals("check")) {
+cordova.getThreadPool().execute(new Runnable() {
+public void run() {
+try {
+JSONObject res = new JSONObject();
+boolean vpn = isVpnActive();
+boolean proxy = isProxyActive();
+boolean mitm = isMitmPresent();
+
+
+List<String> ifaces = getInterfaceNames();
+String ip = getLocalIpAddress();
+
+
+res.put("vpnEnabled", vpn);
+res.put("proxyEnabled", proxy);
+res.put("mitmDetected", mitm);
+res.put("interfaces", ifaces);
+res.put("ip", ip == null ? JSONObject.NULL : ip);
+
+
+callbackContext.success(res);
+} catch (Exception e) {
+callbackContext.error(e.getMessage());
+}
+}
+});
+return true;
+}
+return false;
+}
+
+
+private boolean isVpnActive() {
+try {
+Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+for (NetworkInterface intf : Collections.list(interfaces)) {
+String name = intf.getName().toLowerCase();
+if (!intf.isUp()) continue;
+if (name.startsWith("tun") || name.startsWith("ppp") || name.contains("ipsec") || name.startsWith("utun") || name.startsWith("tap") || name.startsWith("wg") || name.startsWith("vti")) {
+Log.d(TAG, "Detected VPN interface: " + name);
+return true;
+}
 }
 } catch (Exception e) {
 Log.e(TAG, "isVpnActive error", e);
@@ -16,62 +93,4 @@ names.add(intf.getName());
 }
 } catch (Exception e) { }
 return names;
-}
-
-
-private boolean isProxyActive() {
-try {
-String proxyHost = System.getProperty("http.proxyHost");
-String proxyPort = System.getProperty("http.proxyPort");
-if (proxyHost != null && proxyHost.length() > 0) return true;
-if (proxyPort != null && proxyPort.length() > 0) return true;
-
-
-// For Android API >= 14
-if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
-ConnectivityManager cm = (ConnectivityManager) cordova.getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
-NetworkInfo info = cm.getActiveNetworkInfo();
-if (info != null && info.isConnected()) {
-// no direct indicator here; rely on system properties above
-}
-}
-} catch (Exception e) { }
-return false;
-}
-
-
-private boolean isMitmPresent() {
-// Best-effort: check for user-added CAs on Android (requires file access privileges)
-// This method attempts to list files in the user-added certs folder (Android). On some devices path may vary or be restricted.
-try {
-if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-// From Android N, user-added CAs are in /data/misc/user/0/cacerts-added or /data/misc/user/0/cacerts
-Process p = Runtime.getRuntime().exec(new String[]{"sh", "-c", "ls /data/misc/user/0/cacerts-added 2>/dev/null || ls /data/misc/user/0/cacerts 2>/dev/null"});
-BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-String line = reader.readLine();
-reader.close();
-if (line != null) return true;
-}
-} catch (Exception e) {
-// ignore
-}
-return false;
-}
-
-
-private String getLocalIpAddress() {
-try {
-Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
-for (NetworkInterface intf : Collections.list(interfaces)) {
-Enumeration<InetAddress> addrs = intf.getInetAddresses();
-for (InetAddress addr : Collections.list(addrs)) {
-if (!addr.isLoopbackAddress()) {
-String sAddr = addr.getHostAddress();
-if (sAddr.indexOf(':') < 0) return sAddr; // return IPv4
-}
-}
-}
-} catch (Exception ex) { }
-return null;
-}
 }
