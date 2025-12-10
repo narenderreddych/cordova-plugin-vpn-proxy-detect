@@ -1,25 +1,20 @@
 var exec = require('cordova/exec');
 
-var PLUGIN_NAME = 'VpnProxyDetect';
 
-module.exports = {
-isVpnConnected: function () {
-return new Promise(function (resolve, reject) {
-exec(resolve, reject, PLUGIN_NAME, 'isVpnConnected', []);
-});
-},
-
-
-isProxyEnabled: function () {
-return new Promise(function (resolve, reject) {
-exec(resolve, reject, PLUGIN_NAME, 'isProxyEnabled', []);
-});
-},
+exports.check = function(success, error) {
+exec(function(result) {
+success(result);
+}, function(err) {
+error(err);
+}, 'VpnProxyDetect', 'check', []);
+};
 
 
-getProxyInfo: function () {
-return new Promise(function (resolve, reject) {
-exec(resolve, reject, PLUGIN_NAME, 'getProxyInfo', []);
-});
-}
+// Optional convenience: poll method
+exports.startMonitor = function(intervalMs, onResult) {
+intervalMs = intervalMs || 10000; // default 10s
+var timer = setInterval(function() {
+exports.check(function(r) { if (onResult) onResult(r); }, function(e) { console.error('vpnDetect error', e); });
+}, intervalMs);
+return function stop() { clearInterval(timer); };
 };
