@@ -5,7 +5,7 @@ xmlns:android="http://schemas.android.com/apk/res/android">
 <name>VpnProxyDetect</name>
 
 
-<js-module src="www/vpnDetect.js" name="vpnDetect">
+<js-module src="www/vpnproxy.js" name="vpnproxy">
 <clobbers target="cordova.plugins.vpnDetect" />
 </js-module>
 
